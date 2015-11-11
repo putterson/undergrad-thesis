@@ -1,0 +1,62 @@
+\chapter{Methods}
+
+\section{Definitions}
+\begin{description}
+ \item[ORB] Oriented FAST and rotated BRIEF
+ \item[LSH] Locality-sensitive hashing
+ \item[MLH] Minimal Loss Hashing
+ \item[MIH] Multi-Index Hashing
+\end{description}
+
+\section{General System Overview}
+This thesis integrates an Oriented FAST and Rotated BRIEF (ORB) feature detection and description module with a Multi-Index Hashing library. Our design utilized the ORB feature detector and descriptor extractor to generate 256 bit feature descriptor codes. These codes were then used to populate the multi-index hashing (MIH) data structure. The populated MIH structure was then queried using the provided interface.
+
+To generate our list of binary codes we iterate through images in a directory and for each image we preprocess it by converting it to grayscale and applying a gaussian blur with radius 7 to eliminate noise. After the image has been preprocessed it is passed to ORB to generate features, then binary descriptors. For each image these descriptors are appended to a list of descriptors. When all the images have been iterated through we then can use the full list of descriptors to pass to an instance of the MIH datastructure to populate it.
+
+A facility was created to serialize and deserialize the generated descriptors as to avoid generating the descriptors for every test.
+
+\section{ORB Module}
+The ORB module is part of the OpenCV library~\cite{rublee2011orb}. ORB takes as an input one image file and outputs a list of binary descriptors extracted from that image. In this paper, binary descriptors are defined as binary codes which represent the salient features of the image they are produced from. Any image file that OpenCV can read and process can be passed to ORB. The ORB processes these images into binary descriptors by using two sub-components: The Oriented Fast Feature Detector (FD) component, followed by the Rotated BRIEF Descriptor Extractor (DE).
+
+The FD uses corner detection with an intensity centroid orientation measure as well as a scale pyramid which are passed through a Harris corner filter to eliminate edge matches, producing corner descriptors that have scale and orientation information~\cite{rublee2011orb}. These features are then passed onto the DE. The DE takes the image, a keypoint and the feature information and computes a binary code which represents that feature~\cite{rublee2011orb}.
+
+The authors of the ORB module in OpenCV chose a descriptor length of 256 bits for the output of the DE and this defined the size of binary codes used for our experiments.
+
+\section{MIH library}
+The MIH technique works by splitting every code used to populate the structure into $m$ disjoint substrings and using these substrings as indices into $m$ different hash tables. This allows us to search many fewer buckets in the hash tables as we know that, given a query radius of $r$, any code within this radius from the query will have at least one substring which differs by at most $\lfloor \frac{r}{m} \rfloor$ bits. This provides sub-linear query times for large databases of large codes.
+ 
+The MIH code was modified to remove dependencies on MATLAB and was compiled as a library to be linked to by our code. 256 bit binary codes were used to populate the MIH structure and performance tests were carried out by querying the MIH structure, varying the number of neighbours searched for and by varying the substring length used by MIH. Also included in the MIH library is a function for performing a linear scan of the provided codes.
+
+\section{Datasets}
+Experiments are conducted using three vision corpora: MIRFLICKR-25000 collection ~\cite{huiskes08} , Caltech-256 Object Category Dataset ~\cite{griffin2007caltech} and the 102 Category Flower Dataset~\cite{Nilsback08}. These image sets were used to generate rotated BRIEF descriptors for our experiments. The number of images and the number of descriptors generated using ORB on these datasets are listed in the following table:
+
+\begin{center}
+\begin{tabular}{| l | r | r |}
+\hline
+\bfseries Dataset & \bfseries Images & \bfseries Descriptors \\ \hline
+MIRFLICKR-25000 & 25,000 & 10,818,284 \\ \hline
+256 Object Category & 30,607 & 9,996,971 \\ \hline
+102 Category Flower & 8,189 & 3,615,406 \\ \hline
+
+\end{tabular}
+\end{center}
+
+\section{Empirical Testing}
+Several tests were carried out using our developed application. Testing was performed on all three vision corpora for every test. We tested the performance of querying of the MIH structure under various conditions, and also performed some statistical tests on the codes we generated. All performance tests were executed on a machine with 256GiB of RAM and two Intel\textregistered ~Xeon\textregistered ~E5-2670 CPUs with 20MiB of cache and running at 2.6GHz. The process priority of the tests were set to -8 (high priority) to minimize noise from system load, as the machine was being shared by multiple users. The MIH library is single threaded~\cite{norouzi2012fast}  and therefore only utilized one thread of execution on one of the CPUs during tests.
+
+\subsection{Performance}
+Testing of the performance of the MIH library was performed by measuring how long the call to the query function provided by the MIH library blocked. The performance of the query call was measured for various values of $k$ and $m$ for each of the datasets. It is prudent to note that it is not possible to change the value of $m$ after the MIH structure is created, thus, for each value of $m$ the MIH structure must be recreated and repopulated. It is possible to change the value of $k$ on the fly so this lead us to create and populate an MIH structure with a specific $m$, query it for various $k$ nearest neighbours, then move on to the next value of $m$.
+
+For each dataset we first loaded the descriptors into memory by deserializing them from a file stored on the hard disk into an OpenCV Mat structure. The Mat structure contains information about the codes such as the number of codes and their length, as well as a pointer to the codes in contiguous memory. For each dataset we selected a random image from that dataset and computed binary descriptors for it in the same manner as for the creation of the binary codes for that dataset. We stored these descriptors in a separate Mat structure. Each image yielded \textasciitilde400 binary descriptors.
+
+We populate MIH by calling the \texttt{populate} function with a pointer to the codes, the number of codes in the list and the length of the codes in bits.
+
+For the query we record the processes current cpu time in nanoseconds using the systems realtime clock and then we call the \texttt{batchquery} function, passing in a pointer to the query codes, the number of query codes and the length of the codes in bits, as well as various arrays used to store the results of the query. After the function has returned we record the process cpu time again and print out the difference to the console.
+
+When plotting this data we divide the time it took to run \texttt{batchquery} by the number of descriptors supplied to it in the query. This gives us an average measure of the time required to query each descriptor.
+
+\subsection{Code Distribution}
+Statistics on the distribution of binary codes in each of the datasets were calculated by storing a count for each of 256 bits and going through all the codes, incrementing the count for each bit in each code. After going through all the codes the count for each bit was divided by the total number of codes processed to give us a mean value for each of the 256 bits of the codes. A $\chi^2$ test was set up for each dataset to test if each bit in all the codes were uniformly distributed. Each bit was modeled as a sample that was put into two bins, 0 and 1. Thresholds for statistical significant deviation from the uniform distribution were calculated based on this $\chi^2$ test.
+
+\subsection{Hamming Radii needed for k-NN}
+Statistics on the Hammming radius needed for each code to find it's $k$ nearest neighbours was calculated for the first 10000 codes in each dataset by taking each code and querying it's $k$ nearest neighbours and finding the neighbour with the largest Hamming distance. A count was kept for each possible distance (0 to 256) and after all the codes had been queried, every count was divided by the number of codes queried to give the proportion of codes that required that radius.

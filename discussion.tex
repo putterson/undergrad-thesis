@@ -1,0 +1,21 @@
+\chapter{Discussion}
+While the results from our testing were encouraging as to the viability of using natively generated 256 bit binary codes in a MIH structure, some discussion is warranted to explore the patterns and anomalies in the results that may elucidate further research.
+%%there are still some interesting patterns in the data that should be addressed.
+
+\section{Query Performance}
+The performance tests show that our queries were running in sub-linear time up to 1000 nearest neighbours for the larger databases. It is interesting to note that for the 102 Flowers database the queries were only faster than linear scanning before $k$ reached around 250. This seems to indicate that the margin between MIH and linear scanning in terms of the query speed will increase with the database size, which is a nice result.
+
+Also interesting is how the optimal m values were not quite as predicted. For the MIRFLICKR-25000 dataset, $m=10$ and $m=11$ were very close in terms of performance but $m=10$ was faster and the equation given by~\cite{norouzi2012fast} predicted an $m$ value closer to 11. The 256 Object Category dataset fit nicely with the predicted $m$ value. The 102 Flowers dataset was very far from the predicted optimal $m$, but it seems so far that the smaller dataset did not perform well with MIH.
+
+It is important to note that query times were many times lower than linear scanning for small values of $k$, which means that for applications only requiring a small number of nearest neighbours MIH could be an effective technique even for small datasets. With each image having hundreds of descriptors it may not be necessary to get a large number of nearest neighbours for each descriptor to get a statistically significant match, especially since the codes have not been through a hashing function and are true nearest neighbours.
+
+Overall, the performance of the system was good when not querying for large numbers of nearest neighbours. This could be an effect of having small datasets as with larger datasets of shorter codes, the Hamming radii required to get $k$ nearest neighbours is lower, resulting in less lookups.
+
+\section{Code Distribution}
+The calculation of the code distribution turned up the most unexpected result in all our tests. It was hypothesized that the descriptors would have a relatively uniform distribution but this turned out to be untrue. After setting up $\chi^2$ statistical tests for the bits in each dataset we found that very few of the bits could be considered uniformly distributed. What was even more interesting than that was that the codes in each dataset appeared to follow a pattern as to the mean value of each bit. This can be seen visually in our histogram of the bits in the codes. Since our datasets are fairly different in content, this pattern suggests that it is an artifact of the ORB module. More research into the methods of ORB and more statistical analyses of the codes generated may lead to smaller and better performing binary descriptors.
+
+As well, the calculations performed in~\cite{norouzi2012fast} relied upon the assumption that the codes that were in the database were uniformly distributed. This suggests that further analysis is required to determine the effects that different distributions of codes have on the MIH query performance as descriptors from working datasets may evidently vary significantly from uniformly distributed.
+
+\section{Hamming Radii needed for k-NN}
+The Hamming radii needed for $k$-NN for our three datasets have relatively large means and deviations compared to those of the 64 and 128 bit datasets used in~\cite{norouzi2012fast}. I believe that this manifests itself as lowered performance for larger values of $k$, as we must search more buckets for codes that fall within $k$-NN. While with uniformly distributed codes the mean radii we have to search will go up with the code length it would interesting to see how the theoretical average radii compare to the empirical radii for the different dataset sizes and descriptor extraction techniques as these could indicate why the empirical optimal number of substrings $m$ did not always match the predicted optimal $m$.
+%% the general formula for the radii we will have to search is $k * \frac{l}{2\log_2 n}$ where $l$ is the length of the codes and $n$ is number of codes in the database.

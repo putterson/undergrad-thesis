@@ -1,0 +1,180 @@
+% \newcommand*{\myfont}{\fontfamily{fi4}\selectfont}
+\newcommand{\figfont}{\scriptsize \sffamily}
+
+
+\definecolor{bfeat1}{RGB}{255, 0, 0}
+\definecolor{bfeat2}{RGB}{0, 0, 255}
+\definecolor{bfeat3}{RGB}{0, 255, 0}
+\definecolor{bfeat4}{RGB}{191, 128, 64}
+\definecolor{bfeat5}{RGB}{0, 128, 128}
+\definecolor{bfeat6}{RGB}{255, 128, 0}
+\definecolor{bfeat7}{RGB}{128, 0, 128}
+\definecolor{bfeat8}{RGB}{0, 0, 0}
+
+\definecolor{darkblue}{RGB}{0, 0, 143}
+\definecolor{darkgreen}{RGB}{0, 80, 0}
+
+\pgfplotscreateplotcyclelist{colorbfeat}{
+{bfeat8},
+{bfeat1},
+{bfeat2},
+{bfeat3},
+{bfeat4},
+{bfeat5},
+{bfeat6},
+{bfeat7},
+}
+
+\newcommand{\testplot}{
+\begin{tikzpicture}
+\begin{axis}[domain=-10:10, samples=50, smooth, no markers, enlargelimits=false]
+\addplot gnuplot {sin(x)}; \addlegendentry{$\sin(x)$}
+\addplot gnuplot {cos(x)}; \addlegendentry{$\cos(x)$}
+\end{axis}
+\end{tikzpicture}
+}
+
+
+%% arguments are file, title, number of descriptors queried
+\newcommand{\plottestIII}[3]{
+\begin{tikzpicture}
+\begin{axis}[
+    height=5cm,
+    width=10cm,
+    title={#2},
+%     restrict x to domain=0:1500,
+    xmax=1300,
+    xmin=0,
+    xtick={1,250,500,750,1000},
+    enlarge y limits=0,
+    enlarge x limits=0.025,
+    cycle list name=colorbfeat,
+    no markers,
+    legend style={legend pos=north east,font=\tiny},
+    scaled ticks=false,
+    tick label style={/pgf/number format/fixed},
+    ylabel near ticks,
+    xlabel near ticks,
+    ylabel={Query time in $s$},
+    xlabel={k-NN},
+]
+    \pgfplotstableread{#1}{\table}
+    \pgfplotstablegetcolsof{#1}
+    \pgfmathtruncatemacro\numberofcols{\pgfplotsretval-1}
+    \pgfplotsinvokeforeach{1,...,\numberofcols}{
+        \pgfplotstablegetcolumnnamebyindex{##1}\of{\table}\to{\colname}
+        \addplot+[thick] table [y index=##1, y expr=\thisrow{\colname}/(1000000000)/(#3)] {#1};
+        \addlegendentryexpanded{\colname}
+    }
+\end{axis}
+\end{tikzpicture}
+}
+
+\newcommand{\plottestIV}[3]{
+\begin{tikzpicture}
+\begin{axis}[
+    height=4cm,
+    width=0.29\textwidth,
+%     axis x line=bottom,
+%     axis y line=left,
+%     axis on top,
+%     grid=minor,
+%     minor ytick={0.5},
+%     ytick={0.1,0.2,0.3,0.4,0.5,0.6},
+    title={#2},
+    ybar interval,
+%     ybar,
+    ymin=0,
+%     restrict x to domain=0:255,
+    x tick label as interval=false,
+    xtick={},
+%     xtick={0,64,128,192,255},
+    xmajorgrids=false,
+    ymajorgrids=false,
+    bar width=0.8,
+%     x=1,
+    xmax=85,
+    xmin=15,
+    scaled ticks=false,
+    tick label style={/pgf/number format/fixed},
+    enlarge x limits=0.01,
+    ylabel near ticks,
+    xlabel near ticks,
+    ylabel={Fraction of queries},
+    xlabel={Hamming radii needed for #3-NN},
+]
+\addplot[fill=darkblue, draw opacity=0] table {#1};
+\end{axis}
+\end{tikzpicture}
+}
+
+% \newcommand{\plottestV}[2]{
+% \begin{tikzpicture}
+% \begin{axis}[
+%     height=4cm,
+%     axis x line=bottom,
+%     axis y line=left,
+%     axis on top,
+%     grid=minor,
+%     minor ytick={0.5},
+%     ytick={0.1,0.2,0.3,0.4,0.5,0.6},
+%     title={#2},
+%     ybar interval,
+%     ymin=0,
+%     restrict x to domain=0:255,
+%     x tick label as interval=false,
+% %     xtick={},
+%     xtick={0,64,128,192,255},
+%     xmajorgrids=false,
+%     ymajorgrids=false,
+%     x=1,
+%     enlarge x limits=0.01,
+%     ylabel near ticks,
+%     xlabel near ticks,
+%     ylabel={Proportion set to 1},
+%     xlabel={bit \#},
+% ]
+% \addplot[fill=blue, draw opacity=0] table {#1};
+% \end{axis}
+% \end{tikzpicture}
+% }
+
+
+\newcommand{\plottestV}[4]{
+\begin{tikzpicture}
+\begin{axis}[
+    height=4cm,
+    axis x line=bottom,
+    axis y line=left,
+    axis on top,
+    grid=minor,
+    minor ytick={0.5},
+    ytick={0.1,0.2,0.3,0.4,0.5,0.6},
+    title={#2},
+    ybar interval,
+    ymin=0,
+    restrict x to domain=0:255,
+    x tick label as interval=false,
+%     xtick={},
+    xtick={0,64,128,192,255},
+    xmajorgrids=false,
+    ymajorgrids=false,
+    xmin=0,
+    xmax=255,
+    x=1,
+    enlarge x limits=0.01,
+    ylabel near ticks,
+    xlabel near ticks,
+    ylabel={Proportion set to 1},
+    xlabel={bit \#},
+]
+\addplot[fill=green, draw opacity=0, restrict y to domain=#3:#4] table {#1};
+\addplot[fill=red, draw opacity=0, ignore points in y range=#3:#4] table {#1};
+\end{axis}
+\end{tikzpicture}
+}
+
+% argument is number of samples
+\newcommand{\plotchisqr}{
+\addplot[name path global=GraphCurve, mark=none, domain=-2.5:2.5, thick] ({x},{x*x});
+}
